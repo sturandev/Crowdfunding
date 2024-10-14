@@ -4,9 +4,9 @@ pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IFelicity.sol";
+import "./ISturanNetwork.sol";
 
-contract Felicity is Ownable, IFelicity {
+contract SturanNetwork is Ownable, ISturanNetwork {
     using SafeERC20 for IERC20;
 
     IERC20 private token;

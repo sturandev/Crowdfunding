@@ -13,6 +13,7 @@ module.exports = {
   networks: {
     hardhat: {
       accounts: {
+        chainId: 31337,
         count: 10,
         accountsBalance: "10000000000000000000000"
       }
