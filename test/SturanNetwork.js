@@ -27,6 +27,7 @@ describe("SturanNetwork", function () {
     });
 
     describe('Deployment', () => {
+        //deploy the contract
         it('Should set the right owner', async() => {
             expect(await sturanNetwork.owner()).to.equal(owner.address);
         });
@@ -52,7 +53,7 @@ describe("SturanNetwork", function () {
         });        
     });
 
-    describe('Contributing to campaing', () => {
+    describe('Contributing to campaign', () => {
         beforeEach(async () => {
             await sturanNetwork.addCampaign("Test campaign", ethers.parseEther("100"), ethers.parseEther("10"), 5, 86400);
         })
@@ -111,6 +112,50 @@ describe("SturanNetwork", function () {
             .to.be.revertedWith("Campaign is still open")
         });
     });
+
+    describe('WithdrawToken', () => {
+        beforeEach(async () => {
+            await sturanNetwork.addCampaign("Testing campaign", ethers.parseEther("100"), ethers.parseEther("100"), 5, 86400);
     
+            // Register addr3 as a whitelisted user
+            await sturanNetwork.addWhiteListedUser(addr3.address);
     
+            // These contributions should still be valid
+            await sturanNetwork.connect(addr1).contribute(0, ethers.parseEther("40"));
+            await sturanNetwork.connect(addr2).contribute(0, ethers.parseEther("60"));
+        });
+    
+        it('Should allow whitelisted user to withdraw tokens after campaign end and goal reached', async () => {
+            await ethers.provider.send("evm_increaseTime", [86401]);
+            await ethers.provider.send("evm_mine");
+    
+            await sturanNetwork.closeCampaign(0);
+    
+            const contractAddress = await sturanNetwork.getAddress();
+            const contractBalance = await mockToken.balanceOf(contractAddress);
+            expect(contractBalance).to.equal(ethers.parseEther("100"));
+    
+            const withdrawTx = await sturanNetwork.connect(addr3).withdrawToken(0, addr3.address, ethers.parseEther("100"));
+            await expect(withdrawTx)
+                .to.emit(mockToken, "Transfer")
+                .withArgs(contractAddress, addr3.address, ethers.parseEther("100"));
+            console.log(withdrawTx);
+    
+            const newContractBalance = await mockToken.balanceOf(contractAddress);
+            expect(newContractBalance).to.equal(0);
+    
+            const addr3Balance = await mockToken.balanceOf(addr3.address);
+            expect(addr3Balance).to.equal(ethers.parseEther("1100"));
+        });        
+    
+        it('Should not allow non-whitelisted user to withdraw tokens', async() => {
+            await ethers.provider.send("evm_increaseTime", [86401]);
+            await ethers.provider.send("evm_mine");
+    
+            await sturanNetwork.closeCampaign(0);
+    
+            await expect(sturanNetwork.connect(addr1).withdrawToken(0, addr1.address, ethers.parseEther("100")))
+                .to.be.revertedWith("Not whitelisted");
+        });
+    });
 });

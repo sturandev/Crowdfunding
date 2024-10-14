@@ -52,7 +52,7 @@ interface ISturanNetwork {
 
     function getContributors(uint256 campaignId) external view returns (address[] memory);
 
-    function withdrawToken(address to, uint256 amount) external;
+    function withdrawToken(uint256 campaignId,address to, uint256 amount) external;
 
     function getContributorStatus(address account) external view returns (bool, uint256);
 }

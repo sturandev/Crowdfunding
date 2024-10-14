@@ -12,10 +12,14 @@ contract SturanNetwork is Ownable, ISturanNetwork {
     IERC20 private token;
     Campaign[] public campaigns;
 
+    mapping (address => bool) whitelistedUsers;
+
     event CampaignCreated(uint256 indexed campaignId, string name, uint256 goal, uint256 duration);
     event ContributionMade(uint256 indexed campaignId, address indexed contributor, uint256 amount);
     event CampaignClosed(uint256 indexed campaignId, string name, uint256 totalRaised);
     event ContributionRefunded(uint256 indexed campaignId, address indexed contributor, uint256 amount);
+    event UserWithlisted(address indexed user);
+    event RemoveFromWithlist(address indexed user);
 
     constructor(address _tokenAddress, address initialOwner) Ownable(initialOwner) {
         token = IERC20(_tokenAddress);
@@ -138,8 +142,24 @@ contract SturanNetwork is Ownable, ISturanNetwork {
     function getContributors(uint256 campaignId) external view override returns (address[] memory) {
         return campaigns[campaignId].contributors;
     }
+
+    function addWhiteListedUser(address user) external onlyOwner {
+        whitelistedUsers[user] = true;
+        emit UserWithlisted(user);
+    }
+
+    function removeWithlistedUser(address user) external onlyOwner {
+        whitelistedUsers[user] = false;
+        emit RemoveFromWithlist(user);
+    }
     
-    function withdrawToken(address to, uint256 amount) external override onlyOwner {
+    function withdrawToken(uint256 campaignId,address to, uint256 amount) external override {
+        require(whitelistedUsers[msg.sender], "Not whitelisted");
+
+        require(campaignId < campaigns.length, "Campaign does not exist");
+        Campaign storage campaign = campaigns[campaignId];
+        require(!campaign.isOpen, "Campaign is still open");
+        require(block.timestamp >= campaign.endTime, "Campaign duration has not ended");
         require(amount <= token.balanceOf(address(this)), "Insufficient balance");
         token.safeTransfer(to, amount);
     }
